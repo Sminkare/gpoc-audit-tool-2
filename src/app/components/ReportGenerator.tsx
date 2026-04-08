@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import {
   Tabs,
   TabsContent,
@@ -35,14 +37,14 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
 } from "recharts";
 import {
   RefreshCw,
   Download,
   TrendingUp,
   AlertTriangle,
+  BarChart3,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,6 +56,8 @@ export function ReportGenerator({
   data,
 }: ReportGeneratorProps) {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [emailAddress, setEmailAddress] = useState("");
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
 
   // Pivot Table: Status Summary
   const statusSummary = useMemo(() => {
@@ -162,25 +166,331 @@ export function ReportGenerator({
     toast.success("Pivot tables refreshed");
   };
 
-  const handleExportReport = () => {
-    const report = {
-      generatedAt: new Date().toISOString(),
-      totalRecords: data.length,
-      statusSummary,
-      severityDistribution,
-      itemAnalysis,
-      ageDistribution,
-    };
+  const generateHTMLReport = () => {
+    const date = new Date().toLocaleDateString();
+    const avgAge = Math.round(
+      data.reduce((sum, d) => sum + d.age, 0) / data.length
+    );
+    const highPriority = data.filter((d) => d.severity <= 3).length;
+    const activeWork = data.filter(
+      (d) => d.status === "Work In Progress" || d.status === "Assigned"
+    ).length;
 
-    const blob = new Blob([JSON.stringify(report, null, 2)], {
-      type: "application/json",
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>GPOC Services Audit Report - ${date}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #2563eb;
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #1e40af;
+      margin-top: 30px;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 8px;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .metric-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .metric-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .metric-value {
+      font-size: 36px;
+      font-weight: bold;
+      color: #1e40af;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: white;
+    }
+    th {
+      background: #2563eb;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    tr:hover {
+      background: #f8fafc;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-critical {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .badge-high {
+      background: #fed7aa;
+      color: #9a3412;
+    }
+    .badge-medium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .badge-low {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #e2e8f0;
+      text-align: center;
+      color: #64748b;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>GPOC Services Audit Report</h1>
+  <p><strong>Generated:</strong> ${date}</p>
+  
+  <h2>Executive Summary</h2>
+  <div class="summary-grid">
+    <div class="metric-card">
+      <h3>Total Issues</h3>
+      <div class="metric-value">${data.length}</div>
+    </div>
+    <div class="metric-card">
+      <h3>Active Work</h3>
+      <div class="metric-value" style="color: #7c3aed;">${activeWork}</div>
+      <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">In Progress</p>
+    </div>
+    <div class="metric-card">
+      <h3>Average Age</h3>
+      <div class="metric-value" style="color: #0891b2;">${avgAge}</div>
+      <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">Days</p>
+    </div>
+    <div class="metric-card">
+      <h3>High Priority</h3>
+      <div class="metric-value" style="color: #ea580c;">${highPriority}</div>
+      <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">Critical/High Severity</p>
+    </div>
+  </div>
+
+  <h2>Status Summary</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Count</th>
+        <th>Average Age (days)</th>
+        <th>Total Age</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${statusSummary
+        .map(
+          (row) => `
+      <tr>
+        <td><strong>${row.status}</strong></td>
+        <td>${row.count}</td>
+        <td>${row.avgAge.toFixed(1)}</td>
+        <td>${row.totalAge}</td>
+      </tr>
+      `
+        )
+        .join("")}
+    </tbody>
+  </table>
+
+  <h2>Severity Distribution</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Severity Level</th>
+        <th>Count</th>
+        <th>Percentage</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${severityDistribution
+        .map(
+          (row) => `
+      <tr>
+        <td>
+          <span class="badge ${
+            row.severity <= 2
+              ? "badge-critical"
+              : row.severity === 3
+              ? "badge-high"
+              : row.severity === 4
+              ? "badge-medium"
+              : "badge-low"
+          }">
+            Level ${row.severity}
+          </span>
+        </td>
+        <td>${row.count}</td>
+        <td>${((row.count / data.length) * 100).toFixed(1)}%</td>
+      </tr>
+      `
+        )
+        .join("")}
+    </tbody>
+  </table>
+
+  <h2>Top 10 Service Items</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Service Item</th>
+        <th>Count</th>
+        <th>Average Age (days)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemAnalysis
+        .map(
+          (row) => `
+      <tr>
+        <td>${row.item}</td>
+        <td>${row.count}</td>
+        <td>${row.avgAge.toFixed(1)}</td>
+      </tr>
+      `
+        )
+        .join("")}
+    </tbody>
+  </table>
+
+  <h2>Age Distribution</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Age Range</th>
+        <th>Count</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${ageDistribution
+        .map(
+          (row) => `
+      <tr>
+        <td>${row.range}</td>
+        <td>${row.count}</td>
+      </tr>
+      `
+        )
+        .join("")}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <p>GPOC Services Audit Tool • Generated on ${new Date().toLocaleString()}</p>
+  </div>
+</body>
+</html>`;
+  };
+
+  const handleExportReport = () => {
+    const htmlReport = generateHTMLReport();
+    
+    const blob = new Blob([htmlReport], {
+      type: "text/html",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `gpoc-report-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `GPOC-Audit-Report-${new Date().toISOString().split("T")[0]}.html`;
     a.click();
-    toast.success("Report exported");
+    toast.success("Report exported as HTML - Open in browser to view");
+  };
+
+  const handleEmailReport = () => {
+    if (!emailAddress) {
+      toast.error("Please enter an email address");
+      return;
+    }
+
+    const date = new Date().toLocaleDateString();
+    const avgAge = Math.round(
+      data.reduce((sum, d) => sum + d.age, 0) / data.length
+    );
+    const highPriority = data.filter((d) => d.severity <= 3).length;
+    const activeWork = data.filter(
+      (d) => d.status === "Work In Progress" || d.status === "Assigned"
+    ).length;
+
+    const emailSubject = encodeURIComponent(
+      `GPOC Services Audit Report - ${date}`
+    );
+    
+    const emailBody = encodeURIComponent(
+      `GPOC Services Audit Report - ${date}\n\n` +
+      `EXECUTIVE SUMMARY\n` +
+      `==================\n` +
+      `Total Issues: ${data.length}\n` +
+      `Active Work (In Progress): ${activeWork}\n` +
+      `Average Age: ${avgAge} days\n` +
+      `High Priority Issues: ${highPriority}\n\n` +
+      `STATUS SUMMARY\n` +
+      `==============\n` +
+      statusSummary
+        .map(
+          (row) =>
+            `${row.status}: ${row.count} issues (Avg Age: ${row.avgAge.toFixed(1)} days)`
+        )
+        .join("\n") +
+      `\n\n` +
+      `SEVERITY DISTRIBUTION\n` +
+      `=====================\n` +
+      severityDistribution
+        .map(
+          (row) =>
+            `Level ${row.severity}: ${row.count} (${((row.count / data.length) * 100).toFixed(1)}%)`
+        )
+        .join("\n") +
+      `\n\n` +
+      `TOP SERVICE ITEMS\n` +
+      `=================\n` +
+      itemAnalysis
+        .map(
+          (row) =>
+            `${row.item}: ${row.count} issues (Avg Age: ${row.avgAge.toFixed(1)} days)`
+        )
+        .join("\n") +
+      `\n\n---\nGenerated by GPOC Services Audit Tool\n${new Date().toLocaleString()}`
+    );
+
+    window.location.href = `mailto:${emailAddress}?subject=${emailSubject}&body=${emailBody}`;
+    toast.success("Opening email client...");
+    setShowEmailDialog(false);
   };
 
   const COLORS = [
@@ -232,16 +542,49 @@ export function ReportGenerator({
                 Refresh Pivot Tables
               </Button>
               <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEmailDialog(!showEmailDialog)}
+                className="gap-2"
+              >
+                <Mail className="h-4 w-4" />
+                Email Report
+              </Button>
+              <Button
                 variant="default"
                 size="sm"
                 onClick={handleExportReport}
                 className="gap-2"
               >
                 <Download className="h-4 w-4" />
-                Export Report
+                Download Report
               </Button>
             </div>
           </div>
+          
+          {showEmailDialog && (
+            <div className="mt-4 p-4 border rounded-lg bg-slate-50">
+              <Label htmlFor="email-input" className="mb-2 block">
+                Email Address
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="email-input"
+                  type="email"
+                  placeholder="recipient@example.com"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleEmailReport();
+                  }}
+                />
+                <Button onClick={handleEmailReport}>Send</Button>
+              </div>
+              <p className="text-xs text-slate-600 mt-2">
+                This will open your default email client with a formatted report
+              </p>
+            </div>
+          )}
         </CardHeader>
       </Card>
 
