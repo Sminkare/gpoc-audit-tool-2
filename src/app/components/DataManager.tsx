@@ -86,14 +86,15 @@ export function DataManager({ data, setData }: DataManagerProps) {
     setCopiedData(copied);
     
     // Also copy to system clipboard as TSV
-    const headers = ['ShortId', 'Title', 'Status', 'Severity', 'Age', 'Item'];
+    const headers = ['ShortId', 'Title', 'Status', 'Severity', 'Age', 'Item', 'Assignee Group'];
     const rows = copied.map(row => [
       row.shortId,
       row.title,
       row.status,
       row.severity,
       row.age,
-      row.item
+      row.item,
+      row.assignedGroup
     ].join('\t'));
     const tsv = [headers.join('\t'), ...rows].join('\n');
     navigator.clipboard.writeText(tsv);
@@ -382,7 +383,7 @@ export function DataManager({ data, setData }: DataManagerProps) {
                   <TableHead>Severity</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Item</TableHead>
-                  <TableHead>Assignee</TableHead>
+                  <TableHead>Assignee Group</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -425,7 +426,7 @@ export function DataManager({ data, setData }: DataManagerProps) {
                       <TableCell className="text-sm max-w-xs truncate" title={row.item}>
                         {row.item}
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">{row.assigneeIdentity}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{row.assignedGroup}</TableCell>
                     </TableRow>
                   ))
                 )}
