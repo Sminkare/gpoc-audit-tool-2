@@ -41,6 +41,27 @@ function App() {
     { id: '10', step: 'Export final audit report', completed: false, category: 'export' },
   ]);
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
+  const getLatestUpdateDate = () => {
+    if (data.length === 0) return 'N/A';
+    
+    const latestDateStr = data.reduce((latest, d) => {
+      if (!latest) return d.lastUpdatedDate;
+      const currentDate = new Date(d.lastUpdatedDate);
+      const latestDate = new Date(latest);
+      return currentDate > latestDate ? d.lastUpdatedDate : latest;
+    }, data[0].lastUpdatedDate);
+    
+    return formatDate(latestDateStr);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Toaster />
@@ -68,14 +89,7 @@ function App() {
             </CardHeader>
             <CardContent>
               <div className="text-xl font-bold">
-                {data.length > 0 
-                  ? data.reduce((latest, d) => {
-                      if (!latest) return d.lastUpdatedDate;
-                      const currentDate = new Date(d.lastUpdatedDate);
-                      const latestDate = new Date(latest);
-                      return currentDate > latestDate ? d.lastUpdatedDate : latest;
-                    }, data[0].lastUpdatedDate)
-                  : 'N/A'}
+                {getLatestUpdateDate()}
               </div>
               <p className="text-xs text-slate-600 mt-1">Most recent update</p>
             </CardContent>
