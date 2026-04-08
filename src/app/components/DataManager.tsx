@@ -114,15 +114,45 @@ export function DataManager({ data, setData }: DataManagerProps) {
     toast.success(`Pasted ${newData.length} rows`);
   };
 
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Field separator
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
+  };
+
   const parseCSV = (text: string): DataRow[] => {
     const lines = text.split(/\r?\n/).filter(line => line.trim());
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',');
     const rows: DataRow[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',');
+      const values = parseCSVLine(lines[i]);
       if (values.length >= 14) {
         rows.push({
           id: `imported-${i}-${Date.now()}`,
