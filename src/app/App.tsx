@@ -64,13 +64,20 @@ function App() {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Open Issues</CardTitle>
+              <CardTitle className="text-sm font-medium">Last Update Date</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
-                {data.filter(d => d.status === 'Assigned' || d.status === 'Work In Progress').length}
+              <div className="text-xl font-bold">
+                {data.length > 0 
+                  ? data.reduce((latest, d) => {
+                      if (!latest) return d.lastUpdatedDate;
+                      const currentDate = new Date(d.lastUpdatedDate);
+                      const latestDate = new Date(latest);
+                      return currentDate > latestDate ? d.lastUpdatedDate : latest;
+                    }, data[0].lastUpdatedDate)
+                  : 'N/A'}
               </div>
-              <p className="text-xs text-slate-600 mt-1">Active work</p>
+              <p className="text-xs text-slate-600 mt-1">Most recent update</p>
             </CardContent>
           </Card>
           <Card>
