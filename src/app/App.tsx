@@ -3,8 +3,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { DataManager } from './components/DataManager';
 import { AuditChecklist } from './components/AuditChecklist';
 import { ReportGenerator } from './components/ReportGenerator';
-import { FileSpreadsheet, ClipboardCheck, BarChart3 } from 'lucide-react';
+import { PerformanceMetrics } from './components/PerformanceMetrics';
+import { FileSpreadsheet, ClipboardCheck, BarChart3, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
+import { Badge } from './components/ui/badge';
 import { Toaster } from './components/ui/sonner';
 
 export interface DataRow {
@@ -49,18 +51,56 @@ function App() {
     return `${month}/${day}/${year}`;
   };
 
-  const getLatestUpdateDate = () => {
+  const getOldestUpdateDate = () => {
     if (data.length === 0) return 'N/A';
     
-    const latestDateStr = data.reduce((latest, d) => {
-      if (!latest) return d.lastUpdatedDate;
+    const oldestDateStr = data.reduce((oldest, d) => {
+      if (!oldest) return d.lastUpdatedDate;
       const currentDate = new Date(d.lastUpdatedDate);
-      const latestDate = new Date(latest);
-      return currentDate > latestDate ? d.lastUpdatedDate : latest;
+      const oldestDate = new Date(oldest);
+      return currentDate < oldestDate ? d.lastUpdatedDate : oldest;
     }, data[0].lastUpdatedDate);
     
-    return formatDate(latestDateStr);
+    return formatDate(oldestDateStr);
   };
+
+  const getTicketsOver48Hours = () => {
+    if (data.length === 0) return { total: 0, bySeverity: {} };
+    
+    const over48 = data.filter(d => d.age > 2);
+    const bySeverity = {
+      sev2: over48.filter(d => d.severity === 2).length,
+      sev3: over48.filter(d => d.severity === 3).length,
+      sev4: over48.filter(d => d.severity === 4).length,
+      sev5: over48.filter(d => d.severity === 5).length,
+    };
+    
+    return {
+      total: over48.length,
+      bySeverity
+    };
+  };
+
+  const getResolvedMetrics = () => {
+    if (data.length === 0) return { total: 0, rate: '0' };
+    
+    const resolvedStatuses = ['Resolved', 'Closed', 'Completed', 'Done'];
+    const resolved = data.filter(d => 
+      resolvedStatuses.some(status => 
+        d.status.toLowerCase().includes(status.toLowerCase())
+      )
+    );
+    
+    const rate = ((resolved.length / data.length) * 100).toFixed(1);
+    
+    return {
+      total: resolved.length,
+      rate
+    };
+  };
+
+  const ticketsOver48Hours = getTicketsOver48Hours();
+  const resolvedMetrics = getResolvedMetrics();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -83,46 +123,90 @@ function App() {
               <p className="text-xs text-slate-600 mt-1">Imported issues</p>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Last Update Date</CardTitle>
+              <CardTitle className="text-sm font-medium">Oldest Update Date</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-xl font-bold">
-                {getLatestUpdateDate()}
+                {getOldestUpdateDate()}
               </div>
-              <p className="text-xs text-slate-600 mt-1">Most recent update</p>
+              <p className="text-xs text-slate-600 mt-1">Oldest ticket not updated</p>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <CardTitle className="text-sm font-medium">Resolved Tickets</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {data.filter(d => d.status === 'Pending').length}
+                {resolvedMetrics.total}
               </div>
-              <p className="text-xs text-slate-600 mt-1">Awaiting action</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className="text-xs">
+                  {resolvedMetrics.rate}% rate
+                </Badge>
+              </div>
             </CardContent>
           </Card>
+          
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Avg Age</CardTitle>
+              <CardTitle className="text-sm font-medium">Over 48 Hours</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {data.length > 0 ? Math.round(data.reduce((sum, d) => sum + d.age, 0) / data.length) : 0}
+                {ticketsOver48Hours.total}
               </div>
-              <p className="text-xs text-slate-600 mt-1">Days old</p>
+              <div className="mt-2 space-y-1">
+                {ticketsOver48Hours.bySeverity.sev2 > 0 && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-600">Sev 2:</span>
+                    <Badge variant="destructive" className="text-xs">
+                      {ticketsOver48Hours.bySeverity.sev2}
+                    </Badge>
+                  </div>
+                )}
+                {ticketsOver48Hours.bySeverity.sev3 > 0 && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-600">Sev 3:</span>
+                    <Badge className="bg-orange-500 text-xs">
+                      {ticketsOver48Hours.bySeverity.sev3}
+                    </Badge>
+                  </div>
+                )}
+                {ticketsOver48Hours.bySeverity.sev4 > 0 && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-600">Sev 4:</span>
+                    <Badge className="bg-yellow-500 text-xs">
+                      {ticketsOver48Hours.bySeverity.sev4}
+                    </Badge>
+                  </div>
+                )}
+                {ticketsOver48Hours.bySeverity.sev5 > 0 && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-600">Sev 5:</span>
+                    <Badge variant="outline" className="text-xs">
+                      {ticketsOver48Hours.bySeverity.sev5}
+                    </Badge>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="data" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
             <TabsTrigger value="data" className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
               <span>Data Manager</span>
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span>Performance</span>
             </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <ClipboardCheck className="h-4 w-4" />
@@ -136,6 +220,10 @@ function App() {
 
           <TabsContent value="data">
             <DataManager data={data} setData={setData} />
+          </TabsContent>
+
+          <TabsContent value="performance">
+            <PerformanceMetrics data={data} />
           </TabsContent>
 
           <TabsContent value="audit">
@@ -152,3 +240,4 @@ function App() {
 }
 
 export default App;
+
