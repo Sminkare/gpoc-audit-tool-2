@@ -3,8 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 import { DataManager } from './components/DataManager';
 import { AuditChecklist } from './components/AuditChecklist';
 import { ReportGenerator } from './components/ReportGenerator';
-import { PerformanceMetrics } from './components/PerformanceMetrics';
-import { FileSpreadsheet, ClipboardCheck, BarChart3, TrendingUp } from 'lucide-react';
+import { FileSpreadsheet, ClipboardCheck, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { Toaster } from './components/ui/sonner';
@@ -199,14 +198,10 @@ function App() {
         </div>
 
         <Tabs defaultValue="data" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
             <TabsTrigger value="data" className="gap-2">
               <FileSpreadsheet className="h-4 w-4" />
               <span>Data Manager</span>
-            </TabsTrigger>
-            <TabsTrigger value="performance" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span>Performance</span>
             </TabsTrigger>
             <TabsTrigger value="audit" className="gap-2">
               <ClipboardCheck className="h-4 w-4" />
@@ -220,10 +215,6 @@ function App() {
 
           <TabsContent value="data">
             <DataManager data={data} setData={setData} />
-          </TabsContent>
-
-          <TabsContent value="performance">
-            <PerformanceMetrics data={data} />
           </TabsContent>
 
           <TabsContent value="audit">
