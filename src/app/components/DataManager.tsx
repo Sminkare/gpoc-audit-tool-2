@@ -24,6 +24,14 @@ export function DataManager({ data, setData }: DataManagerProps) {
   const [copiedData, setCopiedData] = useState<DataRow[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Transform assigneeIdentity to display name
+  const getDisplayName = (assigneeIdentity: string) => {
+    if (assigneeIdentity === '79d9fdda-320f-4c18-8784-b15baf2b0335') {
+      return 'GSF Procurement- Soft Services';
+    }
+    return assigneeIdentity;
+  };
+
   const filteredData = useMemo(() => {
     return data.filter((row) => {
       const matchesStatus = filterStatus === 'all' || row.status === filterStatus;
@@ -86,7 +94,7 @@ export function DataManager({ data, setData }: DataManagerProps) {
     setCopiedData(copied);
     
     // Also copy to system clipboard as TSV
-    const headers = ['ShortId', 'Title', 'Status', 'Severity', 'Age', 'Item', 'Assignee Group'];
+    const headers = ['ShortId', 'Title', 'Status', 'Severity', 'Age', 'Item', 'Assignee Identity', 'Assignee Group'];
     const rows = copied.map(row => [
       row.shortId,
       row.title,
@@ -94,6 +102,7 @@ export function DataManager({ data, setData }: DataManagerProps) {
       row.severity,
       row.age,
       row.item,
+      getDisplayName(row.assigneeIdentity),
       row.assignedGroup
     ].join('\t'));
     const tsv = [headers.join('\t'), ...rows].join('\n');
@@ -383,13 +392,14 @@ export function DataManager({ data, setData }: DataManagerProps) {
                   <TableHead>Severity</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Item</TableHead>
+                  <TableHead>Assignee Identity</TableHead>
                   <TableHead>Assignee Group</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-slate-500 py-12">
+                    <TableCell colSpan={9} className="text-center text-slate-500 py-12">
                       <div className="flex flex-col items-center gap-3">
                         <Upload className="h-12 w-12 text-slate-300" />
                         <div>
@@ -401,7 +411,7 @@ export function DataManager({ data, setData }: DataManagerProps) {
                   </TableRow>
                 ) : filteredData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-slate-500 py-8">
+                    <TableCell colSpan={9} className="text-center text-slate-500 py-8">
                       No data found. Try adjusting your filters.
                     </TableCell>
                   </TableRow>
@@ -425,6 +435,9 @@ export function DataManager({ data, setData }: DataManagerProps) {
                       </TableCell>
                       <TableCell className="text-sm max-w-xs truncate" title={row.item}>
                         {row.item}
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-600">
+                        {getDisplayName(row.assigneeIdentity)}
                       </TableCell>
                       <TableCell className="text-sm text-slate-600">{row.assignedGroup}</TableCell>
                     </TableRow>
